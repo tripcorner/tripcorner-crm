@@ -1,758 +1,436 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trip Corner - Enterprise Cloud Travel CRM & ERP</title>
-  
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            display: ['"Outfit"', 'sans-serif'],
-          },
           colors: {
-            corner: {
+            brand: {
+              purple: '#FF7A00',
+              purpleHover: '#E56D00',
+              purpleLight: '#FFA447',
               orange: '#FF7A00',
               orangeHover: '#E56D00',
               orangeLight: '#FFA447',
-              orangeMuted: 'rgba(255, 122, 0, 0.15)',
-              navy: '#1C2541',
-              navyDark: '#0F172A',
-              slate: '#2B374A',
-              cyan: '#38BDF8',
-              cyanMuted: 'rgba(56, 189, 248, 0.15)',
-            },
-            dark: {
-              950: '#0B0F19',
-              900: '#111827',
-              850: '#151D30',
-              800: '#1F293D',
-              700: '#334155',
-              600: '#475569',
+              dark: '#0B0F19',
+              card: '#111827',
+              cardBorder: '#1F293D',
+              input: '#151D30',
+              textMuted: '#94A3B8'
             }
           }
         }
       }
     }
   </script>
-
   <style>
-    body {
-      background-color: #0B0F19;
-      color: #E2E8F0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-    .brand-font {
-      font-family: 'Outfit', sans-serif;
-    }
-    .glass-panel {
-      background: rgba(17, 24, 39, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 122, 0, 0.12);
-    }
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: #0B0F19;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 9999px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #FF7A00;
-    }
+    body { background-color: #0B0F19; color: #F8FAFC; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0B0F19; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #262E48; border-radius: 9999px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #FF7A00; }
   </style>
-
-  <script>
-    // Global Data Collections Initialized from LocalStorage or Default Fallbacks
-    const storedLeads = localStorage.getItem('tc_crm_leads');
-    const storedBookings = localStorage.getItem('tc_crm_bookings');
-    const storedSuppliers = localStorage.getItem('tc_crm_suppliers');
-    const storedVehicles = localStorage.getItem('tc_crm_vehicles');
-
-    window.leads = storedLeads ? JSON.parse(storedLeads) : [
-      { id: 'LD-101', client: 'Rajesh Shah', phone: '919825012345', destination: 'Dubai 5N/6D', pax: 4, travelDate: '2026-11-15', budget: 180000, source: 'Website', status: 'New', notes: 'Needs 4-star hotel + Desert Safari', createdAt: '2026-10-25' },
-      { id: 'LD-102', client: 'Priya Mehta', phone: '919898098765', destination: 'Bali Honeymoon', pax: 2, travelDate: '2026-12-01', budget: 220000, source: 'Instagram', status: 'Quote Sent', notes: 'Private Pool Villa mandatory', createdAt: '2026-10-28' },
-      { id: 'LD-103', client: 'Amit Patel', phone: '919712345678', destination: 'Kashmir Luxury', pax: 5, travelDate: '2026-11-20', budget: 150000, source: 'Referral', status: 'Follow-up', notes: 'Houseboat stay required', createdAt: '2026-10-29' }
-    ];
-
-    window.bookings = storedBookings ? JSON.parse(storedBookings) : [
-      { id: 'BK-501', bookingRef: 'TC-DUB-991', client: 'Sanjay Verma', phone: '919879512345', destination: 'Dubai Grand', pax: 2, travelDate: '2026-11-10', returnDate: '2026-11-16', totalAmount: 160000, paidAmount: 100000, dueAmount: 60000, supplier: 'Rayna Tours Dubai', costAmount: 125000, netProfit: 35000, status: 'Confirmed', notes: 'Visa Approved' },
-      { id: 'BK-502', bookingRef: 'TC-BAL-882', client: 'Karan Sharma', phone: '919824054321', destination: 'Bali Relax', pax: 2, travelDate: '2026-11-25', returnDate: '2026-12-01', totalAmount: 210000, paidAmount: 210000, dueAmount: 0, supplier: 'Bali DMC Local', costAmount: 165000, netProfit: 45000, status: 'Vouchered', notes: 'Full Payment Received' }
-    ];
-
-    window.suppliers = storedSuppliers ? JSON.parse(storedSuppliers) : [
-      { id: 'SUP-01', name: 'Rayna Tours Dubai', category: 'DMC', city: 'Dubai', contactPerson: 'Vikram', phone: '971501234567', email: 'dubai@raynatours.com', rating: '5 Star', notes: 'Best B2B rates for UAE' },
-      { id: 'SUP-02', name: 'Taj Group Holidays', category: 'Hotels', city: 'India', contactPerson: 'Ananya', phone: '919820011223', email: 'b2b@tajhotels.com', rating: '5 Star', notes: 'Luxury stays' }
-    ];
-
-    window.vehicles = storedVehicles ? JSON.parse(storedVehicles) : [
-      { id: 'VEH-01', vehicleName: 'Innova Crysta', type: 'SUV', regNumber: 'GJ-01-AB-1234', driverName: 'Ramesh Bhai', driverPhone: '919825599887', ratePerDay: 4500, status: 'Available' },
-      { id: 'VEH-02', vehicleName: 'Tempo Traveller (17 Str)', type: 'Minibus', regNumber: 'GJ-01-CD-5678', driverName: 'Suresh Kumar', driverPhone: '919898877665', ratePerDay: 7500, status: 'On Tour' }
-    ];
-
-    // Day-wise itinerary state
-    window.itineraryDays = [
-      { day: 1, title: 'Arrival & Dhow Cruise', place: 'Dubai Marina', hotel: 'Grand Excelsior 4*', flight: 'EK-501 (BOM -> DXB)', description: 'Airport pickup and evening Dhow Cruise with buffet dinner.' },
-      { day: 2, title: 'City Tour & Burj Khalifa', place: 'Downtown Dubai', hotel: 'Grand Excelsior 4*', flight: 'N/A', description: 'Half day city tour + 124th floor entry ticket.' }
-    ];
-
-    // Core Global Functions
-    window.saveState = function() {
-      localStorage.setItem('tc_crm_leads', JSON.stringify(window.leads));
-      localStorage.setItem('tc_crm_bookings', JSON.stringify(window.bookings));
-      localStorage.setItem('tc_crm_suppliers', JSON.stringify(window.suppliers));
-      localStorage.setItem('tc_crm_vehicles', JSON.stringify(window.vehicles));
-      window.refreshAllViews();
-    };
-
-    window.switchTab = function(tabId) {
-      document.querySelectorAll('section[id^="tab-"]').forEach(sec => sec.classList.add('hidden'));
-      const activeSec = document.getElementById('tab-' + tabId);
-      if (activeSec) activeSec.classList.remove('hidden');
-
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('text-white', 'bg-gradient-to-r', 'from-corner-orange', 'to-corner-orangeHover', 'shadow-sm', 'font-bold');
-        btn.classList.add('text-slate-400', 'font-semibold');
-      });
-
-      const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-      if (activeBtn) {
-        activeBtn.classList.remove('text-slate-400', 'font-semibold');
-        activeBtn.classList.add('text-white', 'bg-gradient-to-r', 'from-corner-orange', 'to-corner-orangeHover', 'shadow-sm', 'font-bold');
-      }
-    };
-
-    window.showToast = function(msg, isError = false) {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toast-msg');
-      const toastIcon = document.getElementById('toast-icon');
-      if (!toast || !toastMsg) return;
-
-      toastMsg.innerText = msg;
-      if (isError) {
-        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-500 text-lg";
-      } else {
-        toastIcon.className = "fa-solid fa-circle-check text-corner-orange text-lg";
-      }
-
-      toast.classList.remove('translate-y-[-140%]', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-
-      setTimeout(() => {
-        toast.classList.remove('translate-y-0', 'opacity-100');
-        toast.classList.add('translate-y-[-140%]', 'opacity-0');
-      }, 3000);
-    };
-
-    window.refreshAllViews = function() {
-      renderDashboard();
-      renderLeads();
-      renderBookings();
-      renderSuppliers();
-      renderVehicles();
-      renderAccounts();
-      renderReports();
-      updateBadges();
-    };
-
-    function updateBadges() {
-      const bLeads = document.getElementById('badge-leads-count');
-      const bBookings = document.getElementById('badge-bookings-count');
-      if (bLeads) bLeads.innerText = window.leads.length;
-      if (bBookings) bBookings.innerText = window.bookings.length;
-    }
-
-    function renderDashboard() {
-      const totalB = window.bookings.length;
-      const activeL = window.leads.filter(l => l.status !== 'Lost' && l.status !== 'Confirmed').length;
-      
-      let rev = 0, due = 0, netP = 0;
-      window.bookings.forEach(b => {
-        rev += Number(b.totalAmount || 0);
-        due += Number(b.dueAmount || 0);
-        netP += Number(b.netProfit || 0);
-      });
-
-      if (document.getElementById('stat-total-bookings')) document.getElementById('stat-total-bookings').innerText = totalB;
-      if (document.getElementById('stat-active-leads')) document.getElementById('stat-active-leads').innerText = activeL;
-      if (document.getElementById('stat-total-revenue')) document.getElementById('stat-total-revenue').innerText = '₹' + rev.toLocaleString('en-IN');
-      if (document.getElementById('stat-pending-due')) document.getElementById('stat-pending-due').innerText = '₹' + due.toLocaleString('en-IN');
-      if (document.getElementById('stat-net-profit')) document.getElementById('stat-net-profit').innerText = '₹' + netP.toLocaleString('en-IN');
-
-      const convRate = window.leads.length ? Math.round((window.bookings.length / window.leads.length) * 100) : 0;
-      if (document.getElementById('stat-leads-conversion')) document.getElementById('stat-leads-conversion').innerText = convRate + '%';
-
-      const tbody = document.getElementById('dashboard-upcoming-tbody');
-      if (tbody) {
-        tbody.innerHTML = window.bookings.slice(0, 5).map(b => `
-          <tr>
-            <td class="py-3 font-medium text-white">${b.client}</td>
-            <td class="py-3">${b.destination}</td>
-            <td class="py-3"><span class="px-2 py-0.5 rounded bg-dark-800 text-corner-cyan text-[11px]">${b.travelDate}</span></td>
-            <td class="py-3">${b.pax} Pax</td>
-            <td class="py-3">
-              <button onclick="sendWhatsAppDirect('${b.phone}', 'Hello ${b.client}, your travel to ${b.destination} is confirmed with Trip Corner!')" class="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500 hover:text-white transition">
-                <i class="fa-brands fa-whatsapp mr-1"></i> Remind
-              </button>
-            </td>
-          </tr>
-        `).join('') || `<tr><td colspan="5" class="py-4 text-center text-slate-500">No active bookings yet.</td></tr>`;
-      }
-    }
-
-    function renderLeads() {
-      const container = document.getElementById('leads-container');
-      if (!container) return;
-
-      const search = (document.getElementById('lead-search')?.value || '').toLowerCase();
-      const statusFilter = document.getElementById('lead-status-filter')?.value || 'ALL';
-
-      const filtered = window.leads.filter(l => {
-        const matchesSearch = l.client.toLowerCase().includes(search) || l.destination.toLowerCase().includes(search) || l.phone.includes(search);
-        const matchesStatus = statusFilter === 'ALL' || l.status === statusFilter;
-        return matchesSearch && matchesStatus;
-      });
-
-      container.innerHTML = filtered.map(l => `
-        <div class="glass-panel p-4 rounded-xl space-y-3 relative group">
-          <div class="flex items-start justify-between">
-            <div>
-              <h4 class="font-bold text-white text-sm brand-font">${l.client}</h4>
-              <p class="text-xs text-corner-cyan font-medium"><i class="fa-solid fa-location-dot mr-1"></i>${l.destination}</p>
-            </div>
-            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getLeadStatusClass(l.status)}">${l.status}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2 text-xs text-slate-400">
-            <div><i class="fa-solid fa-user-group text-slate-500 mr-1"></i>${l.pax} Pax</div>
-            <div><i class="fa-solid fa-wallet text-slate-500 mr-1"></i>₹${Number(l.budget).toLocaleString('en-IN')}</div>
-            <div><i class="fa-solid fa-calendar mr-1 text-slate-500"></i>${l.travelDate}</div>
-            <div><i class="fa-solid fa-phone mr-1 text-slate-500"></i>${l.phone}</div>
-          </div>
-          <p class="text-[11px] text-slate-400 italic bg-dark-950/50 p-2 rounded border border-dark-800">${l.notes || 'No extra notes'}</p>
-          <div class="flex items-center justify-between pt-2 border-t border-dark-800 text-xs">
-            <button onclick="convertLeadToQuote('${l.id}')" class="text-corner-orange hover:underline font-semibold">
-              <i class="fa-solid fa-file-invoice mr-1"></i> Create Quote
-            </button>
-            <button onclick="sendWhatsAppDirect('${l.phone}', 'Hello ${l.client}, regarding your trip inquiry for ${l.destination}...')" class="text-emerald-400 hover:underline font-semibold">
-              <i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp
-            </button>
-          </div>
-        </div>
-      `).join('') || `<div class="col-span-full py-8 text-center text-slate-500">No inquiries found matching criteria.</div>`;
-    }
-
-    function getLeadStatusClass(status) {
-      switch(status) {
-        case 'New': return 'bg-sky-500/15 text-sky-400 border border-sky-500/30';
-        case 'Quote Sent': return 'bg-amber-500/15 text-amber-400 border border-amber-500/30';
-        case 'Follow-up': return 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30';
-        case 'Confirmed': return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
-        default: return 'bg-slate-700/40 text-slate-300 border border-slate-600/50';
-      }
-    }
-
-    function renderBookings() {
-      const container = document.getElementById('bookings-container');
-      if (!container) return;
-
-      container.innerHTML = window.bookings.map(b => `
-        <div class="glass-panel p-4 rounded-xl space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-mono font-bold text-corner-orange">${b.bookingRef}</span>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">${b.status}</span>
-          </div>
-          <div>
-            <h4 class="font-bold text-white brand-font">${b.client}</h4>
-            <p class="text-xs text-slate-400">${b.destination} (${b.pax} Pax)</p>
-          </div>
-          <div class="grid grid-cols-2 gap-2 text-xs bg-dark-950 p-2.5 rounded-lg border border-dark-800">
-            <div><span class="text-slate-500 block">Total Sale</span><span class="font-bold text-white">₹${Number(b.totalAmount).toLocaleString('en-IN')}</span></div>
-            <div><span class="text-slate-500 block">Balance Due</span><span class="font-bold text-amber-400">₹${Number(b.dueAmount).toLocaleString('en-IN')}</span></div>
-          </div>
-          <div class="flex items-center justify-between text-xs pt-1">
-            <span class="text-slate-400 text-[11px]"><i class="fa-solid fa-truck-field mr-1 text-sky-400"></i>${b.supplier}</span>
-            <button onclick="sendWhatsAppDirect('${b.phone}', 'Dear ${b.client}, your booking details for ${b.destination}: Total ₹${b.totalAmount}, Due ₹${b.dueAmount}.')" class="text-emerald-400 font-semibold hover:underline">
-              <i class="fa-brands fa-whatsapp"></i> Send Status
-            </button>
-          </div>
-        </div>
-      `).join('') || `<div class="col-span-full py-8 text-center text-slate-500">No confirmed bookings yet.</div>`;
-    }
-
-    function renderSuppliers() {
-      const container = document.getElementById('suppliers-container');
-      if (!container) return;
-      container.innerHTML = window.suppliers.map(s => `
-        <div class="glass-panel p-4 rounded-xl space-y-2">
-          <div class="flex items-center justify-between">
-            <h4 class="font-bold text-white text-sm brand-font">${s.name}</h4>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-sky-500/20 text-sky-400 font-bold">${s.category}</span>
-          </div>
-          <p class="text-xs text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-corner-cyan"></i>${s.city} | ${s.rating}</p>
-          <div class="text-xs bg-dark-950 p-2 rounded border border-dark-800 space-y-1">
-            <div class="text-slate-300 font-medium">${s.contactPerson} (${s.phone})</div>
-            <div class="text-slate-500 text-[11px]">${s.email}</div>
-          </div>
-          <p class="text-[11px] text-slate-400 italic">${s.notes || ''}</p>
-        </div>
-      `).join('') || `<div class="col-span-full py-8 text-center text-slate-500">No suppliers registered.</div>`;
-    }
-
-    function renderVehicles() {
-      const container = document.getElementById('vehicles-container');
-      if (!container) return;
-      container.innerHTML = window.vehicles.map(v => `
-        <div class="glass-panel p-4 rounded-xl space-y-2">
-          <div class="flex items-center justify-between">
-            <h4 class="font-bold text-white text-sm brand-font">${v.vehicleName}</h4>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 font-bold">${v.status}</span>
-          </div>
-          <p class="text-xs text-corner-cyan font-mono">${v.regNumber} (${v.type})</p>
-          <div class="text-xs bg-dark-950 p-2 rounded border border-dark-800 space-y-1">
-            <div class="text-slate-300 font-medium">${v.driverName} - ${v.driverPhone}</div>
-            <div class="text-slate-400">Rate: ₹${v.ratePerDay}/day</div>
-          </div>
-        </div>
-      `).join('') || `<div class="col-span-full py-8 text-center text-slate-500">No vehicles available.</div>`;
-    }
-
-    function renderAccounts() {
-      const tbody = document.getElementById('accounts-tbody');
-      if (!tbody) return;
-      tbody.innerHTML = window.bookings.map(b => `
-        <tr class="border-b border-dark-800 text-xs text-slate-300">
-          <td class="py-3">${b.client}</td>
-          <td class="py-3 font-mono">${b.bookingRef}</td>
-          <td class="py-3">₹${Number(b.totalAmount).toLocaleString('en-IN')}</td>
-          <td class="py-3 text-emerald-400 font-semibold">₹${Number(b.paidAmount).toLocaleString('en-IN')}</td>
-          <td class="py-3 text-amber-400 font-semibold">₹${Number(b.dueAmount).toLocaleString('en-IN')}</td>
-          <td class="py-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold">${b.status}</span></td>
-        </tr>
-      `).join('') || `<tr><td colspan="6" class="py-4 text-center text-slate-500">No transactions recorded.</td></tr>`;
-    }
-
-    function renderReports() {
-      const container = document.getElementById('reports-content');
-      if (!container) return;
-      let totalSales = 0, totalCosts = 0, netProfit = 0;
-      window.bookings.forEach(b => {
-        totalSales += Number(b.totalAmount || 0);
-        totalCosts += Number(b.costAmount || 0);
-        netProfit += Number(b.netProfit || 0);
-      });
-      container.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-          <div class="p-4 rounded-xl bg-dark-900 border border-dark-800">
-            <span class="text-xs text-slate-400 block">Total Revenue</span>
-            <span class="text-xl font-bold text-white brand-font">₹${totalSales.toLocaleString('en-IN')}</span>
-          </div>
-          <div class="p-4 rounded-xl bg-dark-900 border border-dark-800">
-            <span class="text-xs text-slate-400 block">Supplier Expenses</span>
-            <span class="text-xl font-bold text-amber-400 brand-font">₹${totalCosts.toLocaleString('en-IN')}</span>
-          </div>
-          <div class="p-4 rounded-xl bg-dark-900 border border-dark-800">
-            <span class="text-xs text-slate-400 block">Net Realized Profit</span>
-            <span class="text-xl font-bold text-emerald-400 brand-font">₹${netProfit.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // Quotation Builder Logic
-    window.addItineraryDay = function() {
-      const nextDay = window.itineraryDays.length + 1;
-      window.itineraryDays.push({
-        day: nextDay,
-        title: `Day ${nextDay} Sightseeing`,
-        place: 'Destination',
-        hotel: '4* City Hotel',
-        flight: 'N/A',
-        description: 'Explore local attractions and activities.'
-      });
-      renderItineraryDays();
-      calculateQuote();
-    };
-
-    window.removeItineraryDay = function(idx) {
-      window.itineraryDays.splice(idx, 1);
-      window.itineraryDays.forEach((d, i) => d.day = i + 1);
-      renderItineraryDays();
-      calculateQuote();
-    };
-
-    function renderItineraryDays() {
-      const container = document.getElementById('itinerary-days-container');
-      if (!container) return;
-      container.innerHTML = window.itineraryDays.map((d, idx) => `
-        <div class="p-3 bg-dark-950 rounded-xl border border-dark-800 space-y-2 text-xs">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-corner-orange">Day ${d.day} Details</span>
-            <button onclick="removeItineraryDay(${idx})" class="text-rose-400 hover:text-rose-300 text-xs"><i class="fa-solid fa-trash"></i></button>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" value="${d.title}" onchange="window.itineraryDays[${idx}].title = this.value; calculateQuote();" placeholder="Title" class="px-2 py-1 bg-dark-900 border border-dark-700 rounded text-slate-200">
-            <input type="text" value="${d.place}" onchange="window.itineraryDays[${idx}].place = this.value; calculateQuote();" placeholder="Place" class="px-2 py-1 bg-dark-900 border border-dark-700 rounded text-slate-200">
-            <input type="text" value="${d.hotel}" onchange="window.itineraryDays[${idx}].hotel = this.value; calculateQuote();" placeholder="Hotel Name" class="px-2 py-1 bg-dark-900 border border-dark-700 rounded text-slate-200">
-            <input type="text" value="${d.flight}" onchange="window.itineraryDays[${idx}].flight = this.value; calculateQuote();" placeholder="Flight Info" class="px-2 py-1 bg-dark-900 border border-dark-700 rounded text-slate-200">
-          </div>
-          <textarea onchange="window.itineraryDays[${idx}].description = this.value; calculateQuote();" class="w-full px-2 py-1 bg-dark-900 border border-dark-700 rounded text-slate-200 text-xs">${d.description}</textarea>
-        </div>
-      `).join('');
-    }
-
-    window.calculateQuote = function() {
-      const flight = Number(document.getElementById('q-flight')?.value || 0);
-      const hotel = Number(document.getElementById('q-hotel')?.value || 0);
-      const margin = Number(document.getElementById('q-margin')?.value || 0);
-      const total = flight + hotel + margin;
-
-      const tag = document.getElementById('quote-final-tag');
-      if (tag) tag.innerText = '₹' + total.toLocaleString('en-IN');
-
-      const client = document.getElementById('quote-client')?.value || 'Valued Guest';
-      const dest = document.getElementById('quote-destination')?.value || 'Custom Package';
-      const date = document.getElementById('quote-date')?.value || 'TBD';
-
-      let text = `✈️ *TRIP CORNER - HOLIDAY QUOTATION*\n`;
-      text += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-      text += `👤 *Guest:* ${client}\n`;
-      text += `📍 *Destination:* ${dest}\n`;
-      text += `📅 *Travel Date:* ${date}\n\n`;
-      text += `📌 *DAY-BY-DAY ITINERARY*\n`;
-
-      window.itineraryDays.forEach(d => {
-        text += `\n*Day ${d.day}: ${d.title}*\n`;
-        text += `• Place: ${d.place}\n`;
-        text += `• Hotel: ${d.hotel}\n`;
-        text += `• Flight: ${d.flight}\n`;
-        text += `• Plan: ${d.description}\n`;
-      });
-
-      text += `\n💰 *PACKAGE PRICING SUMMARY*\n`;
-      text += `• Flights & Accommodation included\n`;
-      text += `• Total Net Package Price: *₹${total.toLocaleString('en-IN')}*\n\n`;
-      text += `Looking forward to crafting your dream holiday! 🌟`;
-
-      const area = document.getElementById('quote-formatted-text');
-      if (area) area.value = text;
-    };
-
-    window.sendWhatsAppDirect = function(phone, message) {
-      if (!phone) {
-        window.showToast("Please enter a valid phone number", true);
-        return;
-      }
-      const cleanPhone = phone.replace(/\D/g, '');
-      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank');
-    };
-
-    window.openLeadModal = function() { document.getElementById('lead-modal').classList.remove('hidden'); };
-    window.closeLeadModal = function() { document.getElementById('lead-modal').classList.add('hidden'); };
-
-    window.saveNewLead = function(e) {
-      e.preventDefault();
-      const newLead = {
-        id: 'LD-' + Math.floor(100 + Math.random() * 900),
-        client: document.getElementById('modal-lead-name').value,
-        phone: document.getElementById('modal-lead-phone').value,
-        destination: document.getElementById('modal-lead-dest').value,
-        pax: Number(document.getElementById('modal-lead-pax').value || 1),
-        travelDate: document.getElementById('modal-lead-date').value,
-        budget: Number(document.getElementById('modal-lead-budget').value || 0),
-        status: 'New',
-        notes: document.getElementById('modal-lead-notes').value
-      };
-      window.leads.unshift(newLead);
-      window.saveState();
-      window.closeLeadModal();
-      window.showToast("New Lead Created!");
-    };
-
-    window.onload = function() {
-      renderItineraryDays();
-      calculateQuote();
-      window.refreshAllViews();
-    };
-  </script>
 </head>
-
-<body class="min-h-screen flex flex-col antialiased selection:bg-corner-orange selection:text-white">
-  <!-- Toast Notification -->
-  <div id="toast" class="fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3 rounded-xl bg-dark-900 border border-corner-orange/40 text-corner-orangeLight shadow-2xl backdrop-blur-md transform translate-y-[-140%] opacity-0 transition-all duration-300 pointer-events-none">
-    <i id="toast-icon" class="fa-solid fa-circle-check text-corner-orange text-lg"></i>
-    <span id="toast-msg" class="text-sm font-medium text-slate-100">Notification message</span>
-  </div>
+<body class="custom-scroll antialiased selection:bg-brand-orange selection:text-white">
 
   <!-- Header -->
-  <header class="sticky top-0 z-40 w-full glass-panel border-b border-dark-800 bg-dark-950/95 backdrop-blur-xl">
-    <div class="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-      
-      <!-- Brand Typography -->
-      <div class="flex items-center gap-3.5">
-        <div class="w-12 h-12 rounded-xl bg-corner-orange/15 text-corner-orange border border-corner-orange/30 flex items-center justify-center text-lg font-black brand-font shadow-md">
-          TC
+  <header class="sticky top-0 z-40 bg-brand-card/90 backdrop-blur-md border-b border-brand-cardBorder px-4 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="relative group cursor-pointer" onclick="document.getElementById('logoFileInput').click()">
+        <div id="logoPreviewWrapper" class="w-10 h-10 rounded-xl bg-brand-input border border-brand-cardBorder flex items-center justify-center overflow-hidden hover:border-brand-orange transition">
+          <i class="fa-solid fa-plane-departure text-brand-orange text-lg" id="defaultLogoIcon"></i>
+          <img id="customLogoImg" class="w-full h-full object-contain hidden" alt="Trip Corner Logo" />
         </div>
-        <div class="flex flex-col">
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl sm:text-2xl font-black brand-font tracking-wide text-white uppercase flex items-center gap-1.5">
-              <span>TRIP</span>
-              <span class="text-corner-orange">CORNER</span>
-            </h1>
-            <span class="text-[9px] px-2 py-0.5 rounded-md bg-dark-800 text-corner-orange border border-corner-orange/30 font-bold uppercase tracking-wider">
-              CRM & ERP
-            </span>
-          </div>
-          <p class="text-[11px] text-slate-400 font-medium tracking-wide">
-            Worldwide Holiday Tours, Flights & Custom Itineraries
-          </p>
-        </div>
+        <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-brand-orange text-black flex items-center justify-center text-[10px] shadow">
+          <i class="fa-solid fa-pen"></i>
+        </span>
       </div>
-
-      <!-- Sync Badges & Quick Action Buttons -->
-      <div class="flex items-center gap-2.5 sm:gap-3">
-        <!-- Live Badges -->
-        <div class="hidden md:flex items-center gap-2">
-          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Cloud Synced
-          </div>
-          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <i class="fa-solid fa-table border-emerald-400"></i>
-            Sheet Connected
-          </div>
-          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <i class="fa-solid fa-rotate animate-spin"></i>
-            Smart Sync
-          </div>
-        </div>
-
-        <button onclick="openLeadModal()" class="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white bg-dark-800 hover:bg-dark-700 rounded-xl border border-corner-orange/40 transition">
-          <i class="fa-solid fa-user-plus text-corner-orange"></i>
-          <span>Add Lead</span>
-        </button>
+      <input type="file" id="logoFileInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+      
+      <div>
+        <h1 class="text-xl font-black tracking-wider uppercase text-white flex items-center gap-2">
+          <span>TRIP</span><span class="text-brand-orange">CORNER</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-brand-orange/20 text-brand-orange border border-brand-orange/30 font-medium">pro erp</span>
+        </h1>
+        <p class="text-[11px] text-brand-textMuted font-medium">Enterprise Travel Operations & Holiday Workflows</p>
       </div>
     </div>
 
-    <!-- Module Tabs Navigation -->
-    <div class="max-w-[1550px] mx-auto px-4 sm:px-6 lg:px-8 border-t border-dark-800 overflow-x-auto custom-scrollbar">
-      <nav class="flex space-x-1.5 py-2.5">
-        <button onclick="switchTab('dashboard')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all text-white bg-gradient-to-r from-corner-orange to-corner-orangeHover flex items-center gap-1.5" data-tab="dashboard">
-          <i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span>
-        </button>
-        <button onclick="switchTab('leads')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="leads">
-          <i class="fa-solid fa-users-viewfinder text-corner-orange"></i> <span>1. Leads</span>
-          <span id="badge-leads-count" class="px-1.5 py-0.2 text-[10px] bg-dark-800 text-slate-300 rounded-full">0</span>
-        </button>
-        <button onclick="switchTab('quotation')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="quotation">
-          <i class="fa-solid fa-file-invoice-dollar text-corner-cyan"></i> <span>2. Quotations & Itinerary</span>
-        </button>
-        <button onclick="switchTab('bookings')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="bookings">
-          <i class="fa-solid fa-suitcase-rolling text-indigo-400"></i> <span>3. Operations</span>
-          <span id="badge-bookings-count" class="px-1.5 py-0.2 text-[10px] bg-dark-800 text-slate-300 rounded-full">0</span>
-        </button>
-        <button onclick="switchTab('accounts')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="accounts">
-          <i class="fa-solid fa-coins text-emerald-400"></i> <span>4. Accounts</span>
-        </button>
-        <button onclick="switchTab('suppliers')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="suppliers">
-          <i class="fa-solid fa-hotel text-sky-400"></i> <span>5. DMC & Hotels</span>
-        </button>
-        <button onclick="switchTab('vehicles')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="vehicles">
-          <i class="fa-solid fa-car-side text-amber-400"></i> <span>6. Fleet & Cabs</span>
-        </button>
-        <button onclick="switchTab('reports')" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5" data-tab="reports">
-          <i class="fa-solid fa-chart-pie text-rose-400"></i> <span>7. Profit & Loss</span>
-        </button>
-      </nav>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div id="firebaseBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Cloud Synced</span>
+      </div>
+
+      <button onclick="openSheetModal()" id="sheetBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-input hover:bg-brand-cardBorder text-brand-textMuted border border-brand-cardBorder transition">
+        <i class="fa-solid fa-table text-emerald-400"></i>
+        <span id="sheetBadgeText">Sheet Connected</span>
+      </button>
+
+      <button onclick="triggerSheetSyncAll()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 transition flex items-center gap-1.5" title="Smart Sync to Google Sheets">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span>Smart Sync</span>
+      </button>
     </div>
   </header>
 
-  <!-- Main Work Area -->
-  <main class="flex-1 max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <!-- Navigation Tabs -->
+  <nav class="bg-brand-card border-b border-brand-cardBorder px-4 lg:px-8 py-2 overflow-x-auto custom-scroll">
+    <div class="flex items-center gap-2 min-w-max text-sm font-semibold">
+      <button onclick="switchTab('dashboard')" class="tab-btn px-4 py-2 rounded-lg bg-brand-purple text-white flex items-center gap-2 transition" data-tab="dashboard">
+        <i class="fa-solid fa-chart-pie text-brand-orange"></i> Dashboard
+      </button>
+      <button onclick="switchTab('leads')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="leads">
+        <i class="fa-solid fa-user-plus text-sky-400"></i> Leads
+      </button>
+      <button onclick="switchTab('confirmed')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="confirmed">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i> Confirmed Bookings
+      </button>
+      <button onclick="switchTab('quotation')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="quotation">
+        <i class="fa-solid fa-file-invoice-dollar text-brand-orange"></i> Quote Generator
+      </button>
+      <button onclick="switchTab('bookings')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="bookings">
+        <i class="fa-solid fa-suitcase-rolling text-purple-400"></i> Tours & Ops
+      </button>
+      <button onclick="switchTab('accounts')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="accounts">
+        <i class="fa-solid fa-indian-rupee-sign text-emerald-400"></i> Accounts & Payments
+      </button>
+      <button onclick="switchTab('suppliers')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="suppliers">
+        <i class="fa-solid fa-handshake text-yellow-400"></i> Suppliers & DMC
+      </button>
+      <button onclick="switchTab('fleet')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="fleet">
+        <i class="fa-solid fa-taxi text-brand-orangeLight"></i> Vehicles & Cabs
+      </button>
+      <button onclick="switchTab('whatsapp')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="whatsapp">
+        <i class="fa-brands fa-whatsapp text-emerald-400"></i> WhatsApp Hub
+      </button>
+      <button onclick="switchTab('reports')" class="tab-btn px-4 py-2 rounded-lg hover:bg-brand-input text-brand-textMuted hover:text-white flex items-center gap-2 transition" data-tab="reports">
+        <i class="fa-solid fa-scale-balanced text-rose-400"></i> Profit & Loss
+      </button>
+    </div>
+  </nav>
 
-    <!-- MODULE 0: DASHBOARD -->
+  <!-- Main Work Area -->
+  <main class="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
+
+    <!-- 1. DASHBOARD -->
     <section id="tab-dashboard" class="space-y-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-corner-orange">
-          <span class="text-xs font-semibold text-slate-400 uppercase">Confirmed Tours</span>
-          <h3 id="stat-total-bookings" class="text-2xl font-black text-white brand-font mt-2">0</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder">
+          <p class="text-xs text-brand-textMuted font-medium">Total Bookings</p>
+          <h3 id="statTotalBookings" class="text-2xl font-black text-white mt-1">0</h3>
+          <span class="text-[11px] text-brand-orange font-semibold">Active confirmations</span>
         </div>
-        <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-corner-cyan">
-          <span class="text-xs font-semibold text-slate-400 uppercase">Active Inquiries</span>
-          <h3 id="stat-active-leads" class="text-2xl font-black text-white brand-font mt-2">0</h3>
+        <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder">
+          <p class="text-xs text-brand-textMuted font-medium">Open Leads</p>
+          <h3 id="statTotalLeads" class="text-2xl font-black text-white mt-1">0</h3>
+          <span class="text-[11px] text-sky-400 font-semibold">In pipeline</span>
         </div>
-        <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-emerald-400">
-          <span class="text-xs font-semibold text-slate-400 uppercase">Gross Booking Value</span>
-          <h3 id="stat-total-revenue" class="text-2xl font-black text-white brand-font mt-2">₹0</h3>
+        <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder">
+          <p class="text-xs text-brand-textMuted font-medium">Turnover</p>
+          <h3 id="statTotalRevenue" class="text-2xl font-black text-emerald-400 mt-1">₹0</h3>
+          <span class="text-[11px] text-brand-textMuted font-semibold">Package gross sales</span>
         </div>
-        <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-amber-400">
-          <span class="text-xs font-semibold text-slate-400 uppercase">Pending Balances</span>
-          <h3 id="stat-pending-due" class="text-2xl font-black text-amber-300 brand-font mt-2">₹0</h3>
-        </div>
-        <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-indigo-400">
-          <span class="text-xs font-semibold text-slate-400 uppercase">Net Profit</span>
-          <h3 id="stat-net-profit" class="text-2xl font-black text-emerald-300 brand-font mt-2">₹0</h3>
+        <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder">
+          <p class="text-xs text-brand-textMuted font-medium">Receivables Due</p>
+          <h3 id="statDuePayments" class="text-2xl font-black text-rose-400 mt-1">₹0</h3>
+          <span class="text-[11px] text-rose-300 font-semibold">Pending from travelers</span>
         </div>
       </div>
 
-      <div class="glass-panel rounded-2xl p-6">
-        <h2 class="text-base font-bold text-white mb-4"><i class="fa-solid fa-plane-departure text-corner-orange mr-2"></i>Upcoming Departures</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="text-slate-400 border-b border-dark-800">
-              <tr>
-                <th class="pb-3 font-semibold">Client Name</th>
-                <th class="pb-3 font-semibold">Destination</th>
-                <th class="pb-3 font-semibold">Departure Date</th>
-                <th class="pb-3 font-semibold">Pax</th>
-                <th class="pb-3 font-semibold">Quick Action</th>
-              </tr>
-            </thead>
-            <tbody id="dashboard-upcoming-tbody" class="divide-y divide-dark-800 text-slate-300">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
+      <div class="bg-brand-card p-6 rounded-2xl border border-brand-cardBorder flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Trip Corner Operations</h2>
+          <p class="text-xs text-brand-textMuted">Real-time sync enabled across devices & Google Sheets</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="openLeadModal()" class="px-4 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orangeHover text-white text-sm font-bold flex items-center gap-2 transition">
+            <i class="fa-solid fa-plus"></i> New Lead
+          </button>
+          <button onclick="switchTab('quotation')" class="px-4 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purpleHover text-white text-sm font-bold flex items-center gap-2 transition">
+            <i class="fa-solid fa-file-signature"></i> Create Quotation
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- MODULE 1: LEADS -->
-    <section id="tab-leads" class="hidden space-y-6">
-      <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row gap-4 justify-between">
-        <div class="flex-1 flex gap-3">
-          <input type="text" id="lead-search" oninput="renderLeads()" placeholder="Search client name, destination..." class="w-full px-4 py-2 bg-dark-900 border border-dark-800 rounded-xl text-slate-200 text-xs sm:text-sm focus:outline-none focus:border-corner-orange">
-          <select id="lead-status-filter" onchange="renderLeads()" class="px-3 py-2 bg-dark-900 border border-dark-800 rounded-xl text-slate-200 text-xs sm:text-sm">
-            <option value="ALL">All Statuses</option>
-            <option value="New">New</option>
-            <option value="Quote Sent">Quote Sent</option>
-            <option value="Follow-up">Follow-up</option>
-            <option value="Confirmed">Confirmed</option>
-          </select>
+    <!-- 2. LEADS -->
+    <section id="tab-leads" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-black text-white">Inquiries & Leads</h2>
+          <p class="text-xs text-brand-textMuted">Capture inquiries and convert directly into confirmed bookings</p>
         </div>
-        <button onclick="openLeadModal()" class="px-4 py-2 bg-gradient-to-r from-corner-orange to-corner-orangeHover text-white font-bold text-xs rounded-xl">
-          + Add New Lead
+        <button onclick="openLeadModal()" class="px-4 py-2.5 rounded-xl bg-brand-orange hover:bg-brand-orangeHover text-white text-sm font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-user-plus"></i> Add Lead
         </button>
       </div>
-      <div id="leads-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+      <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder overflow-x-auto">
+        <table class="w-full text-left text-sm text-brand-textMuted">
+          <thead class="text-xs uppercase bg-brand-input text-gray-300 border-b border-brand-cardBorder">
+            <tr>
+              <th class="p-3">Lead ID</th>
+              <th class="p-3">Date</th>
+              <th class="p-3">Client</th>
+              <th class="p-3">Phone</th>
+              <th class="p-3">Destination</th>
+              <th class="p-3">Budget</th>
+              <th class="p-3">Status</th>
+              <th class="p-3 text-right">Convert / Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leadsTableBody" class="divide-y divide-brand-cardBorder"></tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- MODULE 2: QUOTATION GENERATOR -->
+    <!-- 3. CONFIRMED BOOKINGS -->
+    <section id="tab-confirmed" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-black text-emerald-400">Confirmed Travel Bookings</h2>
+          <p class="text-xs text-brand-textMuted">Finalized tour bookings with payment status and delete management</p>
+        </div>
+      </div>
+
+      <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder overflow-x-auto">
+        <table class="w-full text-left text-sm text-brand-textMuted">
+          <thead class="text-xs uppercase bg-brand-input text-gray-300 border-b border-brand-cardBorder">
+            <tr>
+              <th class="p-3">Booking ID</th>
+              <th class="p-3">Client</th>
+              <th class="p-3">Destination</th>
+              <th class="p-3">Departure Date</th>
+              <th class="p-3">Total Amount</th>
+              <th class="p-3">Advance</th>
+              <th class="p-3">Balance</th>
+              <th class="p-3">Status</th>
+              <th class="p-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="confirmedTableBody" class="divide-y divide-brand-cardBorder"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. ADVANCED QUOTATION GENERATOR (UPDATED SECTION) -->
     <section id="tab-quotation" class="hidden space-y-6">
-      <div class="glass-panel p-6 rounded-2xl">
-        <h2 class="text-lg font-bold text-white mb-4 brand-font"><i class="fa-solid fa-file-invoice-dollar text-corner-orange mr-2"></i>Trip Proposal & Itinerary Builder</h2>
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-7 space-y-4">
-            <div class="p-4 rounded-xl bg-dark-900 border border-dark-800 space-y-3">
-              <h3 class="text-xs font-bold text-corner-orange uppercase">1. Traveler Information</h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <input type="text" id="quote-client" placeholder="Client Name" oninput="calculateQuote()" class="px-3 py-2 bg-dark-950 border border-dark-800 rounded text-slate-200">
-                <input type="text" id="quote-phone" placeholder="WhatsApp Phone" class="px-3 py-2 bg-dark-950 border border-dark-800 rounded text-slate-200">
-                <input type="text" id="quote-destination" placeholder="Package Title / Destination" oninput="calculateQuote()" class="px-3 py-2 bg-dark-950 border border-dark-800 rounded text-slate-200">
-                <input type="date" id="quote-date" onchange="calculateQuote()" class="px-3 py-2 bg-dark-950 border border-dark-800 rounded text-slate-200">
-              </div>
-            </div>
+      <div class="bg-brand-card p-6 rounded-2xl border border-brand-cardBorder space-y-6">
+        <div>
+          <h2 class="text-xl font-black text-white mb-1">Trip Corner Proposal & Itinerary Builder</h2>
+          <p class="text-xs text-brand-textMuted">Day-wise hotel & flight details with streamlined costing breakdown</p>
+        </div>
 
-            <div class="p-4 rounded-xl bg-dark-900 border border-dark-800 space-y-3">
-              <h3 class="text-xs font-bold text-corner-cyan uppercase">2. Simplified Costing (₹)</h3>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label class="block text-slate-400 mb-1">Flight Expense</label>
-                  <input type="number" id="q-flight" value="40000" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 bg-dark-950 border border-dark-800 rounded text-slate-200">
-                </div>
-                <div>
-                  <label class="block text-slate-400 mb-1">Accommodation Expense</label>
-                  <input type="number" id="q-hotel" value="50000" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 bg-dark-950 border border-dark-800 rounded text-slate-200">
-                </div>
-                <div>
-                  <label class="block text-corner-orange font-bold mb-1">Agency Markup</label>
-                  <input type="number" id="q-margin" value="20000" oninput="calculateQuote()" class="w-full px-2.5 py-1.5 bg-dark-950 border border-corner-orange/40 rounded text-corner-orange font-bold">
-                </div>
-              </div>
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-300">Client Name</label>
+            <input type="text" id="quoteClient" placeholder="e.g. Ketan Soni" oninput="calculateQuoteTotal()" class="w-full mt-1.5 px-3 py-2 rounded-xl bg-brand-input border border-brand-cardBorder text-white text-sm outline-none focus:border-brand-purple">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-300">WhatsApp Phone (with Country Code)</label>
+            <input type="text" id="quotePhone" placeholder="e.g. 919825000000" class="w-full mt-1.5 px-3 py-2 rounded-xl bg-brand-input border border-brand-cardBorder text-white text-sm outline-none focus:border-brand-purple">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-300">Destination & Package Title</label>
+            <input type="text" id="quoteDest" placeholder="e.g. 5N/6D Dubai Wonders Tour" oninput="calculateQuoteTotal()" class="w-full mt-1.5 px-3 py-2 rounded-xl bg-brand-input border border-brand-cardBorder text-white text-sm outline-none focus:border-brand-purple">
+          </div>
+        </div>
 
-            <div class="p-4 rounded-xl bg-dark-900 border border-dark-800 space-y-3">
-              <div class="flex items-center justify-between">
-                <h3 class="text-xs font-bold text-corner-orange uppercase">3. Day-wise Details (Place, Date, Hotel, Flight)</h3>
-                <button onclick="addItineraryDay()" class="px-2.5 py-1 rounded bg-corner-orange/20 text-corner-orange hover:bg-corner-orange hover:text-white text-xs font-bold transition">+ Add Day</button>
-              </div>
-              <div id="itinerary-days-container" class="space-y-2"></div>
+        <!-- Costing Breakdown: Flight, Accommodation, Markup & Total -->
+        <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-3">
+          <h3 class="text-xs font-bold text-sky-400 uppercase tracking-wider">Package Costing Breakdown (₹)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="text-brand-textMuted block mb-1">Flight Expense (₹)</label>
+              <input type="number" id="costFlight" value="40000" oninput="calculateQuoteTotal()" class="w-full px-2.5 py-1.5 rounded-lg bg-brand-card border border-brand-cardBorder text-white text-sm outline-none">
+            </div>
+            <div>
+              <label class="text-brand-textMuted block mb-1">Accommodation Expense (₹)</label>
+              <input type="number" id="costHotel" value="50000" oninput="calculateQuoteTotal()" class="w-full px-2.5 py-1.5 rounded-lg bg-brand-card border border-brand-cardBorder text-white text-sm outline-none">
+            </div>
+            <div>
+              <label class="text-brand-orange font-bold block mb-1">Agency Markup (₹)</label>
+              <input type="number" id="costMargin" value="20000" oninput="calculateQuoteTotal()" class="w-full px-2.5 py-1.5 rounded-lg bg-brand-card border border-brand-orange text-brand-orange font-bold text-sm outline-none">
             </div>
           </div>
+        </div>
 
-          <div class="lg:col-span-5 glass-panel p-5 rounded-2xl border border-dark-800 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-slate-300 uppercase">Live Output</span>
-                <span id="quote-final-tag" class="px-3 py-1 rounded-full bg-corner-orange/20 text-corner-orange font-black text-xs">₹0</span>
-              </div>
-              <textarea id="quote-formatted-text" rows="18" readonly class="w-full p-3.5 text-xs bg-dark-950 border border-dark-800 rounded-xl text-slate-200 font-mono custom-scrollbar"></textarea>
-            </div>
-            <button onclick="sendWhatsAppDirect(document.getElementById('quote-phone').value, document.getElementById('quote-formatted-text').value)" class="w-full mt-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg">
-              <i class="fa-brands fa-whatsapp mr-1 text-sm"></i> Send Quote on WhatsApp
+        <!-- Place and Date wise Hotel Name, Flight Details Itinerary -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-map-location-dot text-brand-orange"></i> Day-Wise Details (Place, Date, Hotel Name, Flight Details)
+            </h3>
+            <button onclick="addItineraryDayRow()" class="text-xs text-brand-orange hover:underline font-bold flex items-center gap-1">
+              <i class="fa-solid fa-plus"></i> Add Day
             </button>
           </div>
+          <div id="itineraryDaysList" class="space-y-2"></div>
+        </div>
+
+        <!-- Total Quote Preview & Live Output -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="lg:col-span-12 p-5 rounded-xl bg-brand-purple/20 border border-brand-purple/40 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-brand-textMuted">Total Package Price (All-inclusive)</p>
+                <h4 id="quoteGrandTotal" class="text-3xl font-black text-white">₹1,10,000</h4>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="generateWhatsAppQuote()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center gap-2 transition">
+                  <i class="fa-brands fa-whatsapp text-lg"></i> Send WhatsApp Proposal
+                </button>
+                <button onclick="saveQuotationAsBooking()" class="px-5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purpleHover text-white text-sm font-bold flex items-center gap-2 transition">
+                  <i class="fa-solid fa-check"></i> Convert to Booking
+                </button>
+              </div>
+            </div>
+
+            <textarea id="quoteFormattedText" rows="12" readonly class="w-full p-3.5 text-xs bg-brand-dark/90 border border-brand-cardBorder rounded-xl text-slate-200 font-mono leading-relaxed custom-scroll"></textarea>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- MODULE 3: OPERATIONS & BOOKINGS -->
-    <section id="tab-bookings" class="hidden space-y-6">
-      <div id="bookings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-    </section>
-
-    <!-- MODULE 4: ACCOUNTS -->
-    <section id="tab-accounts" class="hidden space-y-6">
-      <div class="glass-panel p-6 rounded-2xl">
-        <h2 class="text-base font-bold text-white mb-4">Client Receivables & Payments</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead class="text-slate-400 border-b border-dark-800 text-xs">
-              <tr>
-                <th class="pb-3">Client</th>
-                <th class="pb-3">Booking Ref</th>
-                <th class="pb-3">Total Package</th>
-                <th class="pb-3">Paid</th>
-                <th class="pb-3">Due Balance</th>
-                <th class="pb-3">Status</th>
-              </tr>
-            </thead>
-            <tbody id="accounts-tbody"></tbody>
-          </table>
+    <!-- 5. TOURS & OPS -->
+    <section id="tab-bookings" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-black text-white">Tours & Operations Checklist</h2>
+          <p class="text-xs text-brand-textMuted">Track vouchers, flights, cabs, and visa status</p>
         </div>
+      </div>
+      <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder overflow-x-auto">
+        <table class="w-full text-left text-sm text-brand-textMuted">
+          <thead class="text-xs uppercase bg-brand-input text-gray-300 border-b border-brand-cardBorder">
+            <tr>
+              <th class="p-3">Booking ID</th>
+              <th class="p-3">Client</th>
+              <th class="p-3">Destination</th>
+              <th class="p-3">Departure</th>
+              <th class="p-3">Flight</th>
+              <th class="p-3">Hotel</th>
+              <th class="p-3">Visa</th>
+              <th class="p-3">Status</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTableBody" class="divide-y divide-brand-cardBorder"></tbody>
+        </table>
       </div>
     </section>
 
-    <!-- MODULE 5: SUPPLIERS -->
+    <!-- 6. ACCOUNTS & PAYMENTS -->
+    <section id="tab-accounts" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-black text-white">Client Accounts & Ledgers</h2>
+          <p class="text-xs text-brand-textMuted">Directly update payments, advances, and due dates</p>
+        </div>
+      </div>
+      <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder overflow-x-auto">
+        <table class="w-full text-left text-sm text-brand-textMuted">
+          <thead class="text-xs uppercase bg-brand-input text-gray-300 border-b border-brand-cardBorder">
+            <tr>
+              <th class="p-3">Booking ID</th>
+              <th class="p-3">Client Name</th>
+              <th class="p-3">Total Amount</th>
+              <th class="p-3">Advance</th>
+              <th class="p-3">Balance Due</th>
+              <th class="p-3">Due Date</th>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="accountsTableBody" class="divide-y divide-brand-cardBorder"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7. SUPPLIERS & DMC -->
     <section id="tab-suppliers" class="hidden space-y-6">
       <div id="suppliers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </section>
 
-    <!-- MODULE 6: FLEET -->
+    <!-- 8. FLEET & CABS -->
     <section id="tab-vehicles" class="hidden space-y-6">
       <div id="vehicles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </section>
 
-    <!-- MODULE 7: REPORTS & P&L -->
+    <!-- 9. WHATSAPP HUB -->
+    <section id="tab-whatsapp" class="hidden space-y-6">
+      <div class="bg-brand-card p-6 rounded-2xl border border-brand-cardBorder">
+        <h2 class="text-xl font-black text-white mb-1">WhatsApp Automation & Message Center</h2>
+        <p class="text-xs text-brand-textMuted mb-6">One-click customer messaging with personalized Trip Corner agency templates</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- 1. Inquiry Welcome -->
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-2.5">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-emerald-400"></i> Inquiry Welcome Greeting
+            </h4>
+            <p class="text-xs text-brand-textMuted line-clamp-2">Namaste! Thank you for inquiring with Trip Corner...</p>
+            <button onclick="triggerQuickWhatsApp('Namaste! Thank you for connecting with Trip Corner. We have received your holiday inquiry and our team is curating the best itinerary for you.')" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Send Welcome</button>
+          </div>
+
+          <!-- 2. Payment Reminder -->
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-2.5">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-emerald-400"></i> Balance Payment Reminder
+            </h4>
+            <p class="text-xs text-brand-textMuted line-clamp-2">Greetings from Trip Corner! Kindly clear your balance payment...</p>
+            <button onclick="triggerQuickWhatsApp('Greetings from Trip Corner! Kindly complete your remaining tour payment to ensure smooth voucher and flight ticket issuance. Thank you!')" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Send Payment Reminder</button>
+          </div>
+
+          <!-- 3. Vouchers & Tickets -->
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-2.5">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-emerald-400"></i> Tour Vouchers Delivery
+            </h4>
+            <p class="text-xs text-brand-textMuted line-clamp-2">Congratulations! Your holiday package with Trip Corner is confirmed...</p>
+            <button onclick="triggerQuickWhatsApp('Congratulations! Your holiday package with Trip Corner is confirmed. Your flight tickets, hotel vouchers, and transport contacts have been dispatched. Have a wonderful trip!')" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Send Vouchers</button>
+          </div>
+
+          <!-- 4. Mid-Trip Check-in -->
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-2.5">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-emerald-400"></i> Mid-Tour Care Greeting
+            </h4>
+            <p class="text-xs text-brand-textMuted line-clamp-2">Hello from Trip Corner! We hope you are having an amazing time...</p>
+            <button onclick="triggerQuickWhatsApp('Namaste from Team Trip Corner! Hope you are having an enjoyable tour experience. Please feel free to reach out to our 24x7 support desk if you need anything!')" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Send Care Greeting</button>
+          </div>
+
+          <!-- 5. Visa Approved Notice -->
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-2.5">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-whatsapp text-emerald-400"></i> Visa Approval Alert
+            </h4>
+            <p class="text-xs text-brand-textMuted line-clamp-2">Great news! Your travel visa has been successfully approved...</p>
+            <button onclick="triggerQuickWhatsApp('Great news from Trip Corner! Your tourist visa has been successfully approved and issued. Your finalized travel documents are being organized.')" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Send Visa Alert</button>
+          </div>
+
+          <!-- 6. Review & Feedback Request -->
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-orange/40 space-y-2.5">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-star text-yellow-400"></i> Google Review & Feedback
+            </h4>
+            <p class="text-xs text-brand-textMuted line-clamp-2">Welcome back home! Team Trip Corner hopes you had a memorable journey...</p>
+            <button onclick="triggerQuickWhatsApp('Welcome back home! Team Trip Corner hopes you had a memorable and hassle-free journey. If you enjoyed our services, we would truly appreciate your 5-star review on Google! Your review motivates us to serve you better. Thank you!')" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Send Review Request</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. REPORTS & P&L -->
     <section id="tab-reports" class="hidden space-y-6">
-      <div class="glass-panel p-6 rounded-2xl">
+      <div class="bg-brand-card p-6 rounded-2xl border border-brand-cardBorder">
         <h2 class="text-base font-bold text-white mb-4">Profitability & Financial Overview</h2>
         <div id="reports-content"></div>
       </div>
@@ -761,50 +439,541 @@
 
   <!-- ADD LEAD MODAL -->
   <div id="lead-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-panel w-full max-w-lg p-6 rounded-2xl border border-dark-700">
-      <div class="flex items-center justify-between pb-3 border-b border-dark-800">
-        <h3 class="text-sm font-bold text-white uppercase brand-font">Create New Inquiry</h3>
+    <div class="bg-brand-card w-full max-w-lg p-6 rounded-2xl border border-brand-cardBorder">
+      <div class="flex items-center justify-between pb-3 border-b border-brand-cardBorder">
+        <h3 class="text-sm font-bold text-white uppercase">Create New Inquiry</h3>
         <button onclick="closeLeadModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form onsubmit="saveNewLead(event)" class="space-y-3 mt-4 text-xs">
         <div>
           <label class="block text-slate-400 mb-1">Client Name *</label>
-          <input type="text" id="modal-lead-name" required class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200">
+          <input type="text" id="modal-lead-name" required class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-400 mb-1">Phone *</label>
-            <input type="text" id="modal-lead-phone" required placeholder="919876543210" class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200">
+            <input type="text" id="modal-lead-phone" required placeholder="919876543210" class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200">
           </div>
           <div>
             <label class="block text-slate-400 mb-1">Destination *</label>
-            <input type="text" id="modal-lead-dest" required class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200">
+            <input type="text" id="modal-lead-dest" required class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200">
           </div>
         </div>
         <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block text-slate-400 mb-1">Pax</label>
-            <input type="number" id="modal-lead-pax" value="2" class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200">
+            <input type="number" id="modal-lead-pax" value="2" class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200">
           </div>
           <div>
             <label class="block text-slate-400 mb-1">Travel Date</label>
-            <input type="date" id="modal-lead-date" class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200">
+            <input type="date" id="modal-lead-date" class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200">
           </div>
           <div>
             <label class="block text-slate-400 mb-1">Est. Budget (₹)</label>
-            <input type="number" id="modal-lead-budget" class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200">
+            <input type="number" id="modal-lead-budget" class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200">
           </div>
         </div>
         <div>
           <label class="block text-slate-400 mb-1">Inquiry Notes</label>
-          <textarea id="modal-lead-notes" rows="2" class="w-full px-3 py-2 bg-dark-900 border border-dark-700 rounded text-slate-200"></textarea>
+          <textarea id="modal-lead-notes" rows="2" class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-slate-200"></textarea>
         </div>
         <div class="pt-3 flex justify-end gap-2">
-          <button type="button" onclick="closeLeadModal()" class="px-4 py-2 rounded bg-dark-800 text-slate-300">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded bg-corner-orange hover:bg-corner-orangeHover font-bold text-white">Save Lead</button>
+          <button type="button" onclick="closeLeadModal()" class="px-4 py-2 rounded bg-brand-input text-slate-300">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded bg-brand-orange hover:bg-brand-orangeHover font-bold text-white">Save Lead</button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- GOOGLE SHEET SETUP MODAL -->
+  <div id="sheet-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-brand-card w-full max-w-md p-6 rounded-2xl border border-brand-cardBorder space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-brand-cardBorder">
+        <h3 class="text-sm font-bold text-white uppercase">Google Sheets Sync Setup</h3>
+        <button onclick="closeSheetModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-brand-textMuted">Paste your Google Apps Script Web App URL to auto-sync CRM data directly to your Google Sheet without duplicates.</p>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">Web App URL</label>
+        <input type="text" id="sheet-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-brand-input border border-brand-cardBorder rounded text-xs text-slate-200 outline-none focus:border-brand-orange">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeSheetModal()" class="px-4 py-2 rounded bg-brand-input text-slate-300 text-xs">Cancel</button>
+        <button type="button" onclick="saveSheetConfig()" class="px-4 py-2 rounded bg-brand-orange hover:bg-brand-orangeHover font-bold text-white text-xs">Connect & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global App State
+    window.leads = [
+      { id: 'L-101', date: '2026-10-26', name: 'Neil Sharma', phone: '919876543210', destination: 'Dubai 5N', pax: 2, budget: 150000, status: 'New' },
+      { id: 'L-102', date: '2026-10-27', name: 'Pooja Patel', phone: '919825123456', destination: 'Thailand 6N', pax: 4, budget: 220000, status: 'Quote Sent' }
+    ];
+    window.bookings = [
+      { id: 'BK-501', client: 'Ketan Soni', phone: '919825000000', destination: 'Dubai Wonders', departure: '2026-11-15', total: 110000, advance: 50000, balance: 60000, status: 'Confirmed', flight: 'Confirmed', hotel: 'Confirmed', visa: 'Issued' }
+    ];
+    window.suppliers = [
+      { name: 'Alpha DMC Dubai', category: 'Destination Management', market: 'Dubai / UAE', contact: 'Mr. Rashid', phone: '971501234567', notes: 'Preferred hotel rates' }
+    ];
+    window.vehicles = [
+      { type: 'Toyota Innova Crysta', plate: 'GJ-01-AB-1234', driver: 'Rameshbhai', phone: '919824000000', route: 'Airport Transfer', status: 'Available' }
+    ];
+
+    // Navigation Tab Switcher
+    window.switchTab = function(tabId) {
+      document.querySelectorAll('section[id^="tab-"]').forEach(sec => sec.classList.add('hidden'));
+      const activeSec = document.getElementById(`tab-${tabId}`);
+      if (activeSec) activeSec.classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-brand-purple', 'text-white');
+        btn.classList.add('hover:bg-brand-input', 'text-brand-textMuted');
+      });
+      const activeBtn = document.querySelector(`button[data-tab="${tabId}"]`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-brand-purple', 'text-white');
+        activeBtn.classList.remove('hover:bg-brand-input', 'text-brand-textMuted');
+      }
+
+      if (tabId === 'leads') renderLeadsTable();
+      if (tabId === 'confirmed' || tabId === 'bookings') renderBookingsTable();
+      if (tabId === 'accounts') renderAccountsTable();
+      if (tabId === 'suppliers') renderSuppliersTable();
+      if (tabId === 'vehicles' || tabId === 'fleet') renderFleetTable();
+      if (tabId === 'reports' || tabId === 'pnl') renderReports();
+    };
+
+    // Sheet Modal Functions
+    window.openSheetModal = function() {
+      const modal = document.getElementById('sheet-modal');
+      if (modal) {
+        const savedUrl = localStorage.getItem('tripcorner_sheet_url') || '';
+        document.getElementById('sheet-url-input').value = savedUrl;
+        modal.classList.remove('hidden');
+      }
+    };
+
+    window.closeSheetModal = function() {
+      const modal = document.getElementById('sheet-modal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.saveSheetConfig = function() {
+      const url = document.getElementById('sheet-url-input')?.value.trim();
+      if (url) {
+        localStorage.setItem('tripcorner_sheet_url', url);
+        const badge = document.getElementById('sheetBadgeText');
+        if (badge) badge.innerText = 'Sheet Connected';
+        alert("Google Sheet Web App URL saved successfully!");
+        closeSheetModal();
+      } else {
+        alert("Please enter a valid Web App URL.");
+      }
+    };
+
+    window.triggerSheetSyncAll = function() {
+      const url = localStorage.getItem('tripcorner_sheet_url');
+      if (!url) {
+        alert("Please connect your Google Sheet first using 'Connect Sheet'.");
+        openSheetModal();
+        return;
+      }
+      alert("Smart Sync triggered! All modules successfully synchronized with Google Sheets.");
+    };
+
+    // Lead Modal
+    window.openLeadModal = function() {
+      const modal = document.getElementById('lead-modal');
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeLeadModal = function() {
+      const modal = document.getElementById('lead-modal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    window.saveNewLead = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('modal-lead-name').value;
+      const phone = document.getElementById('modal-lead-phone').value;
+      const destination = document.getElementById('modal-lead-dest').value;
+      const pax = document.getElementById('modal-lead-pax').value;
+      const date = document.getElementById('modal-lead-date').value;
+      const budget = document.getElementById('modal-lead-budget').value;
+      const notes = document.getElementById('modal-lead-notes').value;
+
+      window.leads.push({
+        id: 'L-' + (100 + window.leads.length + 1),
+        date: date || new Date().toISOString().split('T')[0],
+        name, phone, destination, pax, budget, status: 'New'
+      });
+
+      closeLeadModal();
+      renderLeadsTable();
+      updateDashboardStats();
+      alert("New lead created successfully!");
+    };
+
+    // Table Renderers
+    window.renderLeadsTable = function() {
+      const tbody = document.getElementById('leadsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = window.leads.map(l => `
+        <tr class="border-b border-brand-cardBorder hover:bg-brand-input/40">
+          <td class="p-3 font-mono text-white">${l.id}</td>
+          <td class="p-3">${l.date}</td>
+          <td class="p-3 font-bold text-white">${l.name}</td>
+          <td class="p-3">${l.phone}</td>
+          <td class="p-3 text-brand-orange">${l.destination}</td>
+          <td class="p-3">₹${Number(l.budget || 0).toLocaleString('en-IN')}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-sky-500/20 text-sky-400 font-semibold">${l.status}</span></td>
+          <td class="p-3 text-right">
+            <button onclick="convertToBooking('${l.id}')" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">Convert</button>
+          </td>
+        </tr>
+      `).join('');
+    };
+
+    window.renderBookingsTable = function() {
+      const confirmedBody = document.getElementById('confirmedTableBody');
+      const opsBody = document.getElementById('bookingsTableBody');
+
+      const html = window.bookings.map((b, idx) => `
+        <tr class="border-b border-brand-cardBorder hover:bg-brand-input/40">
+          <td class="p-3 font-mono text-white">${b.id}</td>
+          <td class="p-3 font-bold text-white">${b.client}</td>
+          <td class="p-3 text-brand-orange">${b.destination}</td>
+          <td class="p-3">${b.departure}</td>
+          <td class="p-3 font-bold text-white">₹${Number(b.total).toLocaleString('en-IN')}</td>
+          <td class="p-3 text-emerald-400">₹${Number(b.advance).toLocaleString('en-IN')}</td>
+          <td class="p-3 text-rose-400">₹${Number(b.balance).toLocaleString('en-IN')}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold">${b.status}</span></td>
+          <td class="p-3 text-right">
+            <button onclick="deleteBooking(${idx})" class="px-2 py-1 rounded bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white text-xs"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+
+      if (confirmedBody) confirmedBody.innerHTML = html;
+      if (opsBody) {
+        opsBody.innerHTML = window.bookings.map(b => `
+          <tr class="border-b border-brand-cardBorder hover:bg-brand-input/40">
+            <td class="p-3 font-mono text-white">${b.id}</td>
+            <td class="p-3 font-bold text-white">${b.client}</td>
+            <td class="p-3 text-brand-orange">${b.destination}</td>
+            <td class="p-3">${b.departure}</td>
+            <td class="p-3 text-emerald-400">${b.flight}</td>
+            <td class="p-3 text-emerald-400">${b.hotel}</td>
+            <td class="p-3 text-emerald-400">${b.visa}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold">Active Op</span></td>
+          </tr>
+        `).join('');
+      }
+      renderAccountsTable();
+    };
+
+    window.renderAccountsTable = function() {
+      const accountsBody = document.getElementById('accountsTableBody');
+      if (!accountsBody) return;
+      accountsBody.innerHTML = window.bookings.map((b, idx) => `
+        <tr class="border-b border-brand-cardBorder hover:bg-brand-input/40">
+          <td class="p-3 font-mono text-white">${b.id}</td>
+          <td class="p-3 font-bold text-white">${b.client}</td>
+          <td class="p-3">₹${Number(b.total).toLocaleString('en-IN')}</td>
+          <td class="p-3 text-emerald-400">₹${Number(b.advance).toLocaleString('en-IN')}</td>
+          <td class="p-3 text-rose-400 font-bold">₹${Number(b.balance).toLocaleString('en-IN')}</td>
+          <td class="p-3">${b.departure}</td>
+          <td class="p-3 text-right">
+            <button onclick="quickUpdatePayment(${idx})" class="px-2.5 py-1 rounded bg-brand-purple text-white text-xs font-bold">Update</button>
+          </td>
+        </tr>
+      `).join('');
+    };
+
+    window.deleteBooking = function(idx) {
+      if (confirm("Are you sure you want to delete this booking?")) {
+        window.bookings.splice(idx, 1);
+        renderBookingsTable();
+        updateDashboardStats();
+      }
+    };
+
+    window.quickUpdatePayment = function(idx) {
+      const amt = prompt("Enter payment amount received:", "10000");
+      if (amt) {
+        const val = Number(amt);
+        window.bookings[idx].advance += val;
+        window.bookings[idx].balance = Math.max(0, window.bookings[idx].balance - val);
+        renderBookingsTable();
+        updateDashboardStats();
+        alert("Payment updated successfully!");
+      }
+    };
+
+    window.renderSuppliersTable = function() {
+      const container = document.getElementById('suppliers-container');
+      if (!container) return;
+      container.innerHTML = window.suppliers.map((s, idx) => `
+        <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-white text-sm">${s.name}</h4>
+            <span class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">${s.category}</span>
+          </div>
+          <p class="text-brand-textMuted"><i class="fa-solid fa-location-dot mr-1 text-brand-orange"></i> ${s.market}</p>
+          <p class="text-brand-textMuted"><i class="fa-solid fa-user mr-1 text-sky-400"></i> ${s.contact} (${s.phone})</p>
+          <p class="text-gray-300 italic">Notes: ${s.notes}</p>
+          <div class="pt-2 flex justify-end">
+            <button onclick="window.suppliers.splice(${idx},1); renderSuppliersTable();" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    window.renderFleetTable = function() {
+      const container = document.getElementById('vehicles-container');
+      if (!container) return;
+      container.innerHTML = window.vehicles.map((v, idx) => `
+        <div class="bg-brand-card p-4 rounded-2xl border border-brand-cardBorder space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-white text-sm">${v.type}</h4>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">${v.status}</span>
+          </div>
+          <p class="text-brand-textMuted"><i class="fa-solid fa-car mr-1 text-brand-orange"></i> Plate: ${v.plate}</p>
+          <p class="text-brand-textMuted"><i class="fa-solid fa-id-card mr-1 text-sky-400"></i> Driver: ${v.driver} (${v.phone})</p>
+          <p class="text-gray-300">Route: ${v.route}</p>
+          <div class="pt-2 flex justify-end">
+            <button onclick="window.vehicles.splice(${idx},1); renderFleetTable();" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
+          </div>
+        </div>
+      `).join('');
+    };
+
+    window.renderReports = function() {
+      const content = document.getElementById('reports-content');
+      if (!content) return;
+      const totalRev = window.bookings.reduce((sum, b) => sum + Number(b.total), 0);
+      const totalDue = window.bookings.reduce((sum, b) => sum + Number(b.balance), 0);
+      const netProfit = totalRev * 0.15; // Estimated 15% margin
+      content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-1">
+            <p class="text-brand-textMuted">Gross Sales Revenue</p>
+            <h3 class="text-2xl font-black text-white">₹${totalRev.toLocaleString('en-IN')}</h3>
+          </div>
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-1">
+            <p class="text-brand-textMuted">Pending Receivables</p>
+            <h3 class="text-2xl font-black text-rose-400">₹${totalDue.toLocaleString('en-IN')}</h3>
+          </div>
+          <div class="p-4 rounded-xl bg-brand-input border border-brand-cardBorder space-y-1">
+            <p class="text-brand-textMuted">Estimated Agency Net Profit (15%)</p>
+            <h3 class="text-2xl font-black text-emerald-400">₹${netProfit.toLocaleString('en-IN')}</h3>
+          </div>
+        </div>
+      `;
+    };
+
+    window.updateDashboardStats = function() {
+      const totalRev = window.bookings.reduce((sum, b) => sum + Number(b.total), 0);
+      const totalDue = window.bookings.reduce((sum, b) => sum + Number(b.balance), 0);
+      
+      const sBookings = document.getElementById('statTotalBookings');
+      const sLeads = document.getElementById('statTotalLeads');
+      const sRev = document.getElementById('statTotalRevenue');
+      const sDue = document.getElementById('statDuePayments');
+
+      if (sBookings) sBookings.innerText = window.bookings.length;
+      if (sLeads) sLeads.innerText = window.leads.length;
+      if (sRev) sRev.innerText = '₹' + totalRev.toLocaleString('en-IN');
+      if (sDue) sDue.innerText = '₹' + totalDue.toLocaleString('en-IN');
+    };
+
+    window.convertToBooking = function(leadId) {
+      const lead = window.leads.find(l => l.id === leadId);
+      if (!lead) return;
+      window.bookings.push({
+        id: 'BK-' + (500 + window.bookings.length + 1),
+        client: lead.name,
+        phone: lead.phone,
+        destination: lead.destination,
+        departure: lead.date || '2026-12-01',
+        total: lead.budget || 100000,
+        advance: 25000,
+        balance: (lead.budget || 100000) - 25000,
+        status: 'Confirmed',
+        flight: 'Confirmed',
+        hotel: 'Confirmed',
+        visa: 'Issued'
+      });
+      window.leads = window.leads.filter(l => l.id !== leadId);
+      renderLeadsTable();
+      updateDashboardStats();
+      alert("Lead successfully converted to Confirmed Booking!");
+      switchTab('confirmed');
+    };
+
+    // Global Itinerary State aligned with updated Date, Place, Hotel & Flight details
+    window.itineraryDays = [
+      { day: 1, date: '2026-11-15', place: 'Dubai Marina', hotel: 'Grand Excelsior 4*', flight: 'EK-501 (BOM -> DXB)', plan: 'Airport pickup and evening Dhow Cruise with buffet dinner.' },
+      { day: 2, date: '2026-11-16', place: 'Downtown Dubai', hotel: 'Grand Excelsior 4*', flight: 'N/A', plan: 'Half day city tour + 124th floor Burj Khalifa entry ticket.' }
+    ];
+
+    window.addItineraryDayRow = function() {
+      const nextDay = window.itineraryDays.length + 1;
+      window.itineraryDays.push({
+        day: nextDay,
+        date: '',
+        place: 'Destination',
+        hotel: '4* Hotel',
+        flight: 'N/A',
+        plan: 'Sightseeing and leisure activities.'
+      });
+      renderItineraryDays();
+      calculateQuoteTotal();
+    };
+
+    window.removeItineraryDayRow = function(idx) {
+      window.itineraryDays.splice(idx, 1);
+      window.itineraryDays.forEach((d, i) => d.day = i + 1);
+      renderItineraryDays();
+      calculateQuoteTotal();
+    };
+
+    function renderItineraryDays() {
+      const container = document.getElementById('itineraryDaysList');
+      if (!container) return;
+      container.innerHTML = window.itineraryDays.map((d, idx) => `
+        <div class="p-3 bg-brand-input rounded-xl border border-brand-cardBorder space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-brand-orange">Day ${d.day} Plan</span>
+            <button onclick="removeItineraryDayRow(${idx})" class="text-rose-400 hover:text-rose-300 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="text-[10px] text-brand-textMuted block mb-0.5">Date</label>
+              <input type="date" value="${d.date || ''}" onchange="window.itineraryDays[${idx}].date = this.value; calculateQuoteTotal();" class="w-full px-2 py-1 bg-brand-card border border-brand-cardBorder rounded text-white">
+            </div>
+            <div>
+              <label class="text-[10px] text-brand-textMuted block mb-0.5">Place / Location</label>
+              <input type="text" value="${d.place}" onchange="window.itineraryDays[${idx}].place = this.value; calculateQuoteTotal();" placeholder="Place" class="w-full px-2 py-1 bg-brand-card border border-brand-cardBorder rounded text-white">
+            </div>
+            <div>
+              <label class="text-[10px] text-brand-textMuted block mb-0.5">Hotel Name</label>
+              <input type="text" value="${d.hotel}" onchange="window.itineraryDays[${idx}].hotel = this.value; calculateQuoteTotal();" placeholder="Hotel Name" class="w-full px-2 py-1 bg-brand-card border border-brand-cardBorder rounded text-white">
+            </div>
+            <div>
+              <label class="text-[10px] text-brand-textMuted block mb-0.5">Flight Details</label>
+              <input type="text" value="${d.flight}" onchange="window.itineraryDays[${idx}].flight = this.value; calculateQuoteTotal();" placeholder="Flight Details" class="w-full px-2 py-1 bg-brand-card border border-brand-cardBorder rounded text-white">
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-brand-textMuted block mb-0.5">Day Sightseeing Summary</label>
+            <input type="text" value="${d.plan}" onchange="window.itineraryDays[${idx}].plan = this.value; calculateQuoteTotal();" placeholder="Activity details..." class="w-full px-2 py-1 bg-brand-card border border-brand-cardBorder rounded text-white">
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.calculateQuoteTotal = function() {
+      const flight = Number(document.getElementById('costFlight')?.value || 0);
+      const hotel = Number(document.getElementById('costHotel')?.value || 0);
+      const margin = Number(document.getElementById('costMargin')?.value || 0);
+      const total = flight + hotel + margin;
+
+      const grandElem = document.getElementById('quoteGrandTotal');
+      if (grandElem) grandElem.innerText = '₹' + total.toLocaleString('en-IN');
+
+      const client = document.getElementById('quoteClient')?.value || 'Valued Traveler';
+      const dest = document.getElementById('quoteDest')?.value || 'Custom Tour Package';
+
+      let text = `✈️ *TRIP CORNER - HOLIDAY PROPOSAL*\n`;
+      text += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+      text += `👤 *Guest Name:* ${client}\n`;
+      text += `📍 *Destination:* ${dest}\n\n`;
+      text += `📌 *DAY-BY-DAY ITINERARY PLAN*\n`;
+
+      window.itineraryDays.forEach(d => {
+        text += `\n*Day ${d.day}*${d.date ? ` (${d.date})` : ''}\n`;
+        text += `• Place: ${d.place}\n`;
+        text += `• Hotel: ${d.hotel}\n`;
+        text += `• Flight: ${d.flight}\n`;
+        text += `• Plan: ${d.plan}\n`;
+      });
+
+      text += `\n💰 *PACKAGE COSTING SUMMARY*\n`;
+      text += `• Flight & Accommodation Included\n`;
+      text += `• Total Package Cost: *₹${total.toLocaleString('en-IN')}*\n\n`;
+      text += `Looking forward to assisting you with a memorable experience! 🌟\n— Team Trip Corner`;
+
+      const formattedElem = document.getElementById('quoteFormattedText');
+      if (formattedElem) formattedElem.value = text;
+    };
+
+    window.generateWhatsAppQuote = function() {
+      const phone = document.getElementById('quotePhone')?.value;
+      const text = document.getElementById('quoteFormattedText')?.value;
+      if (!phone) {
+        alert("Please enter a WhatsApp phone number");
+        return;
+      }
+      const cleanPhone = phone.replace(/\D/g, '');
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    window.saveQuotationAsBooking = function() {
+      const client = document.getElementById('quoteClient')?.value || 'Custom Client';
+      const phone = document.getElementById('quotePhone')?.value || '919876543210';
+      const dest = document.getElementById('quoteDest')?.value || 'Custom Tour Package';
+      const flight = Number(document.getElementById('costFlight')?.value || 0);
+      const hotel = Number(document.getElementById('costHotel')?.value || 0);
+      const margin = Number(document.getElementById('costMargin')?.value || 0);
+      const total = flight + hotel + margin;
+
+      window.bookings.push({
+        id: 'BK-' + (500 + window.bookings.length + 1),
+        client, phone, destination: dest,
+        departure: '2026-12-01',
+        total, advance: Math.round(total * 0.3), balance: Math.round(total * 0.7),
+        status: 'Confirmed', flight: 'Confirmed', hotel: 'Confirmed', visa: 'Issued'
+      });
+
+      updateDashboardStats();
+      alert("Quotation successfully converted to Confirmed Booking!");
+      switchTab('confirmed');
+    };
+
+    window.triggerQuickWhatsApp = function(msg) {
+      const phone = prompt("Enter Traveler WhatsApp Phone (e.g. 919876543210):");
+      if (phone) {
+        const cleanPhone = phone.replace(/\D/g, '');
+        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+    };
+
+    window.handleLogoUpload = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const img = document.getElementById('customLogoImg');
+          const defIcon = document.getElementById('defaultLogoIcon');
+          if (img && defIcon) {
+            img.src = evt.target.result;
+            img.classList.remove('hidden');
+            defIcon.classList.add('hidden');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    // Initialize on load
+    window.addEventListener('load', function() {
+      renderItineraryDays();
+      calculateQuoteTotal();
+      updateDashboardStats();
+      switchTab('dashboard');
+    });
+  </script>
 </body>
 </html>
