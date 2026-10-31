@@ -255,7 +255,7 @@
         case 'Quote Sent': return 'bg-amber-500/15 text-amber-400 border border-amber-500/30';
         case 'Follow-up': return 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30';
         case 'Confirmed': return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
-        default: return 'bg-rose-500/15 text-rose-400 border border-rose-500/30';
+        default: return 'bg-slate-700/40 text-slate-300 border border-slate-600/50';
       }
     }
 
@@ -275,7 +275,7 @@
           </div>
           <div class="grid grid-cols-2 gap-2 text-xs bg-dark-950 p-2.5 rounded-lg border border-dark-800">
             <div><span class="text-slate-500 block">Total Sale</span><span class="font-bold text-white">₹${Number(b.totalAmount).toLocaleString('en-IN')}</span></div>
-            <div><span class="text-slate-500 block">Balance Due</span><span class="font-bold text-rose-400">₹${Number(b.dueAmount).toLocaleString('en-IN')}</span></div>
+            <div><span class="text-slate-500 block">Balance Due</span><span class="font-bold text-amber-400">₹${Number(b.dueAmount).toLocaleString('en-IN')}</span></div>
           </div>
           <div class="flex items-center justify-between text-xs pt-1">
             <span class="text-slate-400 text-[11px]"><i class="fa-solid fa-truck-field mr-1 text-sky-400"></i>${b.supplier}</span>
@@ -289,17 +289,17 @@
 
     function renderSuppliers() {
       const container = document.getElementById('suppliers-container');
-      if (!container) return;
-      container.innerHTML = window.suppliers.map(s => `
-        <div class="glass-panel p-4 rounded-xl space-y-2">
+        <!-- Client Due -->
+        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group border-l-4 border-l-amber-500">
           <div class="flex items-center justify-between">
-            <h4 class="font-bold text-white text-sm brand-font">${s.name}</h4>
-            <span class="px-2 py-0.5 rounded text-[10px] bg-dark-800 text-corner-cyan border border-corner-cyan/30">${s.category}</span>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Balances</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
           </div>
-          <p class="text-xs text-slate-400"><i class="fa-solid fa-location-dot mr-1"></i>${s.city} | Contact: ${s.contactPerson}</p>
-          <div class="flex items-center justify-between text-xs pt-2 border-t border-dark-800">
-            <span class="text-slate-400">${s.phone}</span>
-            <span class="text-amber-400 font-bold">${s.rating}</span>
+          <div class="mt-3">
+            <h3 id="stat-pending-due" class="text-2xl font-black text-amber-300 brand-font">₹0</h3>
+            <p class="text-xs text-slate-400 mt-1">Receivables due</p>
           </div>
         </div>
       `).join('');
@@ -461,10 +461,28 @@ function syncSheet(ss, sheetName, items, headers) {
           document.getElementById('gsheet-sync-status').innerText = 'Connected & Active';
           document.getElementById('gsheet-sync-status').className = 'text-xs text-emerald-400 font-bold';
         }
-        if (document.getElementById('header-gsheet-badge')) {
-          document.getElementById('header-gsheet-badge').innerHTML = '<i class="fa-solid fa-cloud-check text-emerald-400 mr-1"></i> Google Sheet: Connected';
-          document.getElementById('header-gsheet-badge').className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold cursor-pointer';
-        }
+      }
+      // Ensure badges stay permanently connected on refresh
+      updateHeaderBadges();
+    };
+
+    window.updateHeaderBadges = function() {
+      const badgeContainer = document.getElementById('header-sync-badges');
+      const hasGSheet = localStorage.getItem('tripcorner_gsheet_url');
+      if (badgeContainer) {
+        badgeContainer.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Cloud Synced
+            </span>
+            <button onclick="openGoogleSheetModal()" class="flex items-center gap-1.5 px-3 py-1 rounded-full ${hasGSheet ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-dark-800 border-dark-700 text-slate-400'} border text-xs font-semibold hover:border-emerald-500/50 transition">
+              <i class="fa-solid fa-table-cells text-emerald-400"></i> ${hasGSheet ? 'Sheet Connected' : 'Connect Sheet'}
+            </button>
+            <button onclick="triggerGoogleSheetSync()" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition" title="Click to force smart sync">
+              <i class="fa-solid fa-arrows-rotate text-emerald-400"></i> Smart Sync
+            </button>
+          </div>
+        `;
       }
     };
 
@@ -781,10 +799,9 @@ function syncSheet(ss, sheetName, items, headers) {
 
       <!-- Quick Actions Header -->
       <div class="flex items-center gap-3">
-        <button id="header-gsheet-badge" onclick="openGoogleSheetModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
-          <i class="fa-solid fa-file-excel"></i>
-          <span>Google Sheet: Setup</span>
-        </button>
+        <div id="header-sync-badges" class="hidden md:flex items-center gap-2">
+          <!-- Rendered dynamically and persisted -->
+        </div>
 
         <button onclick="openLeadModal()" class="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-white bg-dark-800 hover:bg-dark-700 rounded-xl border border-corner-orange/40 transition">
           <i class="fa-solid fa-user-plus text-corner-orange"></i>
@@ -1038,7 +1055,7 @@ function syncSheet(ss, sheetName, items, headers) {
         </div>
         <div class="glass-panel p-6 rounded-2xl">
           <span class="text-xs text-slate-400 uppercase">Supplier & Flight Costs</span>
-          <h3 id="pnl-cost" class="text-3xl font-black text-rose-400 brand-font mt-2">₹0</h3>
+          <h3 id="pnl-cost" class="text-3xl font-black text-cyan-400 brand-font mt-2">₹0</h3>
         </div>
         <div class="glass-panel p-6 rounded-2xl">
           <span class="text-xs text-slate-400 uppercase">Net Earned Margin</span>
